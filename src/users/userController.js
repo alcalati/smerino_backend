@@ -66,11 +66,13 @@ exports.verifyEmail = async (req, res) => {
     user.confirmed = true; // Marca al usuario como confirmado
     await user.save();
 
-    res.json({ message: 'Correo verificado, puedes iniciar sesión' });
+    // Redirigir al frontend
+    res.redirect(`${process.env.CLIENT_URL}/email-verified`); // Cambia esto a la URL de tu frontend
   } catch (error) {
     res.status(400).json({ message: 'Token inválido o expirado' });
   }
 };
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;

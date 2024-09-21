@@ -7,7 +7,12 @@ const router = express.Router();
 router.post('/register', register);
 
 // Ruta de verificación de email
-router.get('/verify/:token', verifyEmail);
+router.get('/verify/:token', (req, res) => {
+  const { token } = req.params;
+  const url = `${process.env.CLIENT_URL}/verify-email/${token}`; // Cambia esta línea
+
+  res.redirect(url); // Redirige al frontend
+});
 
 // Ruta de inicio de sesión
 router.post('/login', login);
