@@ -59,7 +59,6 @@ const userSchema = new mongoose.Schema({
       mediumLongTermGoals: String,
       pastChemicalUse: String,
     },
-
     foodPreferences: {
       favoriteMeals: String,
       hungerTimes: String,
@@ -68,7 +67,6 @@ const userSchema = new mongoose.Schema({
       favoriteFitFoods: String,
       favoriteFatFoods: String,
     },
-
     training: {
       trainingDays: Number,
       trainingDuration: Number,
@@ -78,7 +76,6 @@ const userSchema = new mongoose.Schema({
       favoriteExercises: String,
       dislikedExercises: String,
     },
-
     caseDescription: {
       currentMood: Number,
       selfEsteem: Number,
@@ -87,6 +84,10 @@ const userSchema = new mongoose.Schema({
     },
 
     additionalInfo: String,
+  },
+  registrationProgress: {
+    type: String,
+    default: "personalData" // Indica en qué parte del cuestionario está el usuario
   },
 });
 const User = mongoose.model('User', userSchema);

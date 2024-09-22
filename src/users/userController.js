@@ -102,20 +102,69 @@ exports.login = async (req, res) => {
 
 // Guardar respuestas de las preguntas del primer inicio de sesión
 exports.saveFirstLoginAnswers = async (req, res) => {
-  const { category, answers } = req.body;
-  const userId = req.user.id;
-
   try {
+    const { category, answers } = req.body; // Recibimos la categoría y las respuestas del frontend
+    const userId = req.user._id; // ID del usuario (asumiendo que está autenticado)
+
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    user.firstLoginQuestions = { ...user.firstLoginQuestions, [category]: answers };
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
 
+    // Actualizamos la sección correspondiente de firstLoginAnswers
+    if (category === 'Datos personales') {
+      user.firstLoginAnswers.personalData = answers;
+      user.registrationProgress = 'physiologicalData';
+    } else if (category === 'Datos fisiológicos-patológicos') {
+      user.firstLoginAnswers.physiologicalData = answers;
+      user.registrationProgress = 'habits';
+    } else if (category === 'Hábitos') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'generalQuestions';
+    } else if (category === 'Cuestiones Generales') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'foodPreferences';
+    } else if (category === 'Comida') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'training';
+    } else if (category === 'Entrenamiento') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'caseDescription';
+    } else if (category === 'Descripción del Caso') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'additionalInfo';
+    } else if (category === 'Datos de Interés Adicional') {
+      user.firstLoginAnswers.habits = answers;
+      user.registrationProgress = 'personalData';
+    }
+
+    // Guardamos el progreso en la base de datos
     await user.save();
-    res.status(200).json({ message: 'Respuestas guardadas correctamente.' });
+
+    return res.status(200).json({ message: 'Respuestas guardadas correctamente', progress: user.registrationProgress });
   } catch (error) {
-    console.error('Error al guardar respuestas:', error);
-    res.status(500).json({ message: 'Error en el servidor' });
+    return res.status(500).json({ message: 'Error al guardar las respuestas', error });
+  }
+};
+
+exports.updateProgress = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { progress } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Actualizamos el progreso del usuario
+    user.registrationProgress = progress;
+    await user.save();
+
+    return res.status(200).json({ message: 'Progreso actualizado' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al actualizar el progreso', error });
   }
 };
 
