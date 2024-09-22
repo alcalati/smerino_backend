@@ -78,10 +78,6 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
-
-
-
-
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -104,6 +100,28 @@ exports.login = async (req, res) => {
     res.json({ message: 'Inicio de sesión exitoso', token });
   } catch (error) {
     console.error('Error en el inicio de sesión:', error);
+    res.status(500).json({ message: 'Error en el servidor' });
+  }
+  if (!user.firstLoginQuestions.personalData) {
+    return res.json({ redirect: '/questions' }); // Redirige al formulario de preguntas
+  }
+};
+
+exports.saveFirstLoginAnswers = async (req, res) => {
+  const { category, answers } = req.body;
+  const userId = req.user.id; // Asume que usas autenticación y obtienes el ID del usuario
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // Dependiendo de la categoría, actualiza las respuestas
+    user.firstLoginQuestions[category] = answers;
+
+    await user.save();
+    res.status(200).json({ message: 'Respuestas guardadas correctamente.' });
+  } catch (error) {
+    console.error('Error al guardar respuestas:', error);
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
