@@ -36,7 +36,7 @@ exports.register = async (req, res) => {
       from: process.env.GMAIL_USER,
       to: email,
       subject: 'Verifica tu correo',
-      html: `<h2>Verificación de cuenta</h2><p>Por favor haz click <a href="${process.env.CLIENT_URL}/auth/verify/${token}">aquí</a> para confirmar tu cuenta.</p>`,
+      html: `<h2>Verificación de cuenta</h2><p>Por favor haz click <a href="${process.env.CLIENT_URL}/verify-email/${token}">aquí</a> para confirmar tu cuenta.</p>`,
     };
 
     // Enviar correo de confirmación
