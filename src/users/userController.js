@@ -57,10 +57,10 @@ exports.register = async (req, res) => {
 // Confirmación de correo
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
-  console.log('Token recibido:', token); // Agregado para depuración
+  console.log('Token recibido:', token);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decodificado:', decoded); // Agregado para depuración
+    console.log('Token decodificado:', decoded);
     const user = await User.findOne({ email: decoded.email });
 
     if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
@@ -68,13 +68,17 @@ exports.verifyEmail = async (req, res) => {
     user.confirmed = true; // Marca al usuario como confirmado
     await user.save();
 
+    // Log antes de redirigir
+    console.log('Usuario confirmado:', user);
+
     // Redirigir al frontend
-    res.redirect(`${process.env.CLIENT_URL}/email-verified`); // Cambia esto a la URL de tu frontend
+    res.redirect(`${process.env.CLIENT_URL}/email-verified`);
   } catch (error) {
-    console.error('Error en la verificación:', error); // Agregado para depuración
+    console.error('Error en la verificación:', error);
     res.status(400).json({ message: 'Token inválido o expirado' });
   }
 };
+
 
 
 
