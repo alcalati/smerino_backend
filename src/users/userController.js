@@ -57,19 +57,14 @@ exports.register = async (req, res) => {
 // Confirmación de correo
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
-  console.log('Token recibido:', token);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decodificado:', decoded);
     const user = await User.findOne({ email: decoded.email });
 
     if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
 
     user.confirmed = true; // Marca al usuario como confirmado
     await user.save();
-
-    // Log antes de redirigir
-    console.log('Usuario confirmado:', user);
 
     res.json({ message: 'Correo verificado exitosamente.' });
   } catch (error) {
@@ -78,45 +73,43 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
+// Inicio de sesión
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Buscar al usuario por el email
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
 
-    // Comprobar si el usuario ha confirmado su correo
     if (!user.confirmed) return res.status(400).json({ message: 'Por favor, verifica tu correo antes de iniciar sesión.' });
 
-    // Comparar la contraseña ingresada con la almacenada
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(400).json({ message: 'Contraseña incorrecta' });
 
-    // Generar un token JWT
     const token = jwt.sign({ email: user.email, id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Responder con el token
+    // Redirigir al formulario de preguntas si no se han completado
+    if (!user.firstLoginQuestions || Object.keys(user.firstLoginQuestions).length === 0) {
+      return res.json({ message: 'Redirigiendo a las preguntas', redirect: '/questions', token });
+    }
+
     res.json({ message: 'Inicio de sesión exitoso', token });
   } catch (error) {
     console.error('Error en el inicio de sesión:', error);
     res.status(500).json({ message: 'Error en el servidor' });
   }
-  if (!user.firstLoginQuestions.personalData) {
-    return res.json({ redirect: '/questions' }); // Redirige al formulario de preguntas
-  }
 };
 
+// Guardar respuestas de las preguntas del primer inicio de sesión
 exports.saveFirstLoginAnswers = async (req, res) => {
   const { category, answers } = req.body;
-  const userId = req.user.id; // Asume que usas autenticación y obtienes el ID del usuario
+  const userId = req.user.id;
 
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    // Dependiendo de la categoría, actualiza las respuestas
-    user.firstLoginQuestions[category] = answers;
+    user.firstLoginQuestions = { ...user.firstLoginQuestions, [category]: answers };
 
     await user.save();
     res.status(200).json({ message: 'Respuestas guardadas correctamente.' });
@@ -126,9 +119,10 @@ exports.saveFirstLoginAnswers = async (req, res) => {
   }
 };
 
+// Obtener perfil del usuario
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password'); // No devolvemos la contraseña
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     res.json(user);
@@ -138,6 +132,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// Renovar token
 exports.renewToken = async (req, res) => {
   const { token } = req.body;
 

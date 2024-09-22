@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, verifyEmail, login, getProfile , renewToken } = require('./userController.js');
+const { register, verifyEmail, login, getProfile , renewToken, saveFirstLoginAnswers } = require('./userController.js');
 const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -17,6 +17,9 @@ router.get('/profile', authMiddleware, getProfile);
 
 //renovar token inicio sesión
 router.post('/renew-token', renewToken);
+
+router.post('/first-login-answers', authMiddleware, saveFirstLoginAnswers);
+
 
 
 module.exports = router;
