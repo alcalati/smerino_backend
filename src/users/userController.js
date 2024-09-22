@@ -71,8 +71,7 @@ exports.verifyEmail = async (req, res) => {
     // Log antes de redirigir
     console.log('Usuario confirmado:', user);
 
-    // Redirigir al frontend a la nueva página de verificación
-    res.redirect(`${process.env.CLIENT_URL}/email-verified`);
+    res.json({ message: 'Correo verificado exitosamente.' });
   } catch (error) {
     console.error('Error en la verificación:', error);
     res.status(400).json({ message: 'Token inválido o expirado' });
