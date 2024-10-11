@@ -12,7 +12,7 @@ exports.register = async (req, res) => {
         const hashedPassword = await userService.hashPassword(password);
         const newUser = await userRepository.createUser({ name, lastName, email, password: hashedPassword, birthDate, height, weight, phoneNumber });
 
-        const token = userService.generateToken({ email, id: newUser._id }); // Incluyendo el ID en el token
+        const token = userService.generateToken(newUser); // Asegúrate de que newUser tenga el correo
 
         // Configurar nodemailer
         const transporter = nodemailer.createTransport({
@@ -51,26 +51,21 @@ exports.register = async (req, res) => {
 // Confirmación de correo
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
-  console.log('Token recibido en la verificación:', token);
+  console.log('Token recibido en la verificación:', token); // Agregado para depuración
 
   try {
-      const decoded = userService.verifyToken(token);
-      const user = await userRepository.findUserByEmail(decoded.email);
+    const decoded = userService.verifyToken(token);
+    const user = await userRepository.findUserByEmail(decoded.email);
 
-      if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
+    if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
 
-      // Verifica si el usuario ya está confirmado
-      if (user.confirmed) {
-          return res.json({ message: 'El correo ya ha sido verificado anteriormente.' });
-      }
+    user.confirmed = true; // Marca al usuario como confirmado
+    await user.save();
 
-      user.confirmed = true; // Marca al usuario como confirmado
-      await user.save();
-
-      res.json({ message: 'Correo verificado exitosamente.' });
+    res.json({ message: 'Correo verificado exitosamente.' });
   } catch (error) {
-      console.error('Error en la verificación:', error);
-      res.status(400).json({ message: error.message || 'Token inválido o expirado' });
+    console.error('Error en la verificación:', error);
+    res.status(400).json({ message: 'Token inválido o expirado' });
   }
 };
 
