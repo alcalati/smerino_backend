@@ -4,67 +4,73 @@ const nodemailer = require('nodemailer');
 
 // Registro de usuario
 exports.register = async (req, res) => {
-  const { name, lastName, email, password, birthDate, height, weight, phoneNumber } = req.body;
-  try {
-    const existingUser = await userRepository.findUserByEmail(email);
-    if (existingUser) return res.status(400).json({ message: 'Usuario ya registrado' });
+    const { name, lastName, email, password, birthDate, height, weight, phoneNumber } = req.body;
+    try {
+        const existingUser = await userRepository.findUserByEmail(email);
+        if (existingUser) return res.status(400).json({ message: 'Usuario ya registrado' });
 
-    const hashedPassword = await userService.hashPassword(password);
-    const newUser = await userRepository.createUser({ name, lastName, email, password: hashedPassword, birthDate, height, weight, phoneNumber });
+        const hashedPassword = await userService.hashPassword(password);
+        const newUser = await userRepository.createUser({ name, lastName, email, password: hashedPassword, birthDate, height, weight, phoneNumber });
 
-    const token = userService.generateToken(newUser);
+        const token = userService.generateToken({ email, id: newUser._id }); // Incluyendo el ID en el token
 
-    // Configurar nodemailer
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+        // Configurar nodemailer
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false,
+            },
+        });
 
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: email,
-      subject: 'Verifica tu correo',
-      html: `<h2>Verificación de cuenta</h2><p>Por favor haz click <a href="${process.env.CLIENT_URL}/verify-email/${token}">aquí</a> para confirmar tu cuenta.</p>`,
-    };
+        const mailOptions = {
+            from: process.env.GMAIL_USER,
+            to: email,
+            subject: 'Verifica tu correo',
+            html: `<h2>Verificación de cuenta</h2><p>Por favor haz click <a href="${process.env.CLIENT_URL}/verify-email/${token}">aquí</a> para confirmar tu cuenta.</p>`,
+        };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        return console.log('Error al enviar el correo:', error);
-      }
-      console.log('Correo enviado:', info.response);
-    });
-
-    res.status(201).json({ message: 'Usuario registrado. Verifica tu correo.' });
-  } catch (error) {
-    console.error('Error en el registro:', error);
-    res.status(500).json({ message: 'Error en el registro' });
-  }
+        // Enviar correo
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error al enviar el correo:', error); // Log de error
+                return res.status(500).json({ message: 'Error al enviar el correo de verificación' });
+            }
+            console.log('Correo enviado:', info.response);
+            res.status(201).json({ message: 'Usuario registrado. Verifica tu correo.' });
+        });
+    } catch (error) {
+        console.error('Error en el registro:', error);
+        res.status(500).json({ message: 'Error en el registro' });
+    }
 };
 
 // Confirmación de correo
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
-  console.log('Token recibido en la verificación:', req.params.token);
+  console.log('Token recibido en la verificación:', token);
 
   try {
-    const decoded = userService.verifyToken(token);
-    const user = await userRepository.findUserByEmail(decoded.email);
+      const decoded = userService.verifyToken(token);
+      const user = await userRepository.findUserByEmail(decoded.email);
 
-    if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
+      if (!user) return res.status(400).json({ message: 'Usuario no encontrado' });
 
-    user.confirmed = true; // Marca al usuario como confirmado
-    await user.save();
+      // Verifica si el usuario ya está confirmado
+      if (user.confirmed) {
+          return res.json({ message: 'El correo ya ha sido verificado anteriormente.' });
+      }
 
-    res.json({ message: 'Correo verificado exitosamente.' });
+      user.confirmed = true; // Marca al usuario como confirmado
+      await user.save();
+
+      res.json({ message: 'Correo verificado exitosamente.' });
   } catch (error) {
-    console.error('Error en la verificación:', error);
-    res.status(400).json({ message: 'Token inválido o expirado' });
+      console.error('Error en la verificación:', error);
+      res.status(400).json({ message: error.message || 'Token inválido o expirado' });
   }
 };
 
