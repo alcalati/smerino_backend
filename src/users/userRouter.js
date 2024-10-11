@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/register', register);
 
 // Ruta de verificación de email
-router.get('/verify/:token', verifyEmail);
+router.get('/verify-email/:token', verifyEmail);
 
 // Ruta de inicio de sesión
 router.post('/login', login);
